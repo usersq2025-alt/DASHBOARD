@@ -1,0 +1,294 @@
+
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Innovation Projects Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f0f2f5; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Sidebar Styles */
+        .sidebar { width: 350px; background: #fff; border-right: 1px solid #ddd; padding: 20px; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 2px 0 5px rgba(0,0,0,0.05); }
+        .sidebar h2 { color: #1a73e8; margin-top: 0; text-align: center; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; font-size: 20px; }
+        .filter-section { margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0; }
+        label { font-weight: 600; display: block; margin-bottom: 8px; color: #444; font-size: 13px; }
+        select { width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px; font-family: 'Inter', sans-serif; margin-bottom: 12px; }
+        
+        .project-details { background: #fff; border-radius: 8px; padding: 15px; border: 1px solid #1a73e8; margin-top: 20px; display: none; box-shadow: 0 4px 6px rgba(26,115,232,0.1); }
+        .project-details h3 { margin-top: 0; color: #1a73e8; border-bottom: 1px solid #eee; padding-bottom: 10px; font-size: 16px; }
+        .detail-item { margin-bottom: 10px; font-size: 13px; line-height: 1.5; }
+        .detail-label { font-weight: bold; color: #555; display: inline-block; width: 100px; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; background: #e8f0fe; color: #1a73e8; margin-bottom: 10px; font-weight: bold; text-transform: uppercase; }
+        
+        /* Main Content Styles */
+        .main-content { flex: 1; padding: 25px; overflow-y: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid #1a73e8; }
+        .stat-card .val { font-size: 26px; font-weight: bold; color: #333; margin-top: 10px; }
+        .stat-card .lbl { font-size: 13px; color: #666; font-weight: 600; text-transform: uppercase; }
+
+        /* Charts Grid - Updated for 3 columns at the bottom */
+        .charts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .chart-container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .chart-title { font-weight: bold; margin-bottom: 15px; color: #444; text-align: center; font-size: 14px; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>Dashboard & Filters</h2>
+        
+        <div class="filter-section">
+            <label for="domainFilter">1. Industry Domain:</label>
+            <select id="domainFilter" onchange="handleCascade()">
+                <option value="All">All Industries</option>
+                <option value="Business & E-commerce">Business & E-commerce</option><option value="Education">Education</option><option value="Health & Care">Health & Care</option><option value="Public Services & Community">Public Services & Community</option><option value="Real Estate">Real Estate</option><option value="Security">Security</option>
+            </select>
+
+            <label for="sectorFilter">2. Technology Used:</label>
+            <select id="sectorFilter" onchange="handleCascade()">
+                <option value="All">All Technologies</option>
+                <option value="AI">AI</option><option value="Hardware + AI">Hardware + AI</option><option value="Hardware + Mobile">Hardware + Mobile</option><option value="Hardware + Web">Hardware + Web</option><option value="IoT">IoT</option><option value="Mobile">Mobile</option><option value="Product">Product</option><option value="Service">Service</option><option value="Tech Service">Tech Service</option><option value="Web">Web</option><option value="Web + AI">Web + AI</option><option value="Web + Mobile">Web + Mobile</option>
+            </select>
+
+            <label for="segmentFilter">3. Targeted Segment:</label>
+            <select id="segmentFilter" onchange="handleCascade()">
+                <option value="All">All Segments</option>
+                <option value="Children">Children</option><option value="Children and others">Children and others</option><option value="Elderly">Elderly</option><option value="General community">General community</option><option value="General local community">General local community</option><option value="Low-income families">Low-income families</option><option value="Men">Men</option><option value="People with disabilities">People with disabilities</option><option value="Refugees">Refugees</option><option value="Refugees/IDPs">Refugees/IDPs</option><option value="Security personnel">Security personnel</option><option value="Women">Women</option><option value="Youth">Youth</option><option value="Youth and others">Youth and others</option>
+            </select>
+
+            <label for="projectFilter">4. Select Project:</label>
+            <select id="projectFilter" onchange="updateDashboard()">
+                <option value="All">All Filtered Projects</option>
+            </select>
+        </div>
+
+        <div id="detailsPanel" class="project-details">
+            <h3 id="pName">Project Name</h3>
+            <span id="pDomainBadge" class="badge">Domain</span>
+            <div class="detail-item"><span class="detail-label">Description:</span> <span id="pDesc"></span></div>
+            <div class="detail-item"><span class="detail-label">Segment:</span> <span id="pSegment"></span></div>
+            <div class="detail-item"><span class="detail-label">Technologies:</span> <span id="pCat"></span></div>
+            <div class="detail-item"><span class="detail-label">STEAM:</span> <span id="pSteam"></span></div>
+            <div class="detail-item"><span class="detail-label">Team:</span> <span id="pTeam"></span></div>
+        </div>
+        
+        <div id="placeholderText" style="color: #999; text-align: center; margin-top: 30px; font-size: 13px;">
+            Apply filters or select a specific project to view deep-dive analytics here.
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1 style="margin:0; font-size: 24px; color: #202124;">Innovation Projects Overview</h1>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card" style="border-color: #4285F4;"><div class="lbl">Total Projects</div><div class="val" id="statProjects">0</div></div>
+            <div class="stat-card" style="border-color: #34A853;"><div class="lbl">Total Members</div><div class="val" id="statMembers">0</div></div>
+            <div class="stat-card" style="border-color: #1a73e8;"><div class="lbl">Male</div><div class="val" id="statMale">0</div></div>
+            <div class="stat-card" style="border-color: #e91e63;"><div class="lbl">Female</div><div class="val" id="statFemale">0</div></div>
+        </div>
+
+        <div class="charts-grid">
+            <!-- Team Chart spans all 3 columns -->
+            <div class="chart-container" style="grid-column: span 3;">
+                <div class="chart-title">Team Size & Composition per Project</div>
+                <canvas id="teamChart" height="60"></canvas>
+            </div>
+            
+            <!-- Bottom 3 Charts -->
+            <div class="chart-container">
+                <div class="chart-title">Industry Domains</div>
+                <canvas id="domainChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">Technologies Used</div>
+                <canvas id="catChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">Targeted Segments</div>
+                <canvas id="segmentChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const rawData = [{"No": "1", "Name": "Teck Wheels", "Description": "Converting manual or electric wheelchairs into smart electric wheelchairs that are locally maintainable and customizable to each patient's specific needs.", "Targeted Segment": "People with disabilities", "Team": "4 members (1 Male, 3 Female)", "Type and Gategory": "Product, AI, IoT, Hardware + AI", "STEAM": "Technology/Engineering", "Male": 1, "Female": 3, "Domain": "Health & Care"}, {"No": "2", "Name": "Kazdura Team", "Description": "An interactive web platform acting as a comprehensive geographic and service guide in Syria, using advanced mapping for real-time updates on local sites.", "Targeted Segment": "Youth, Men, Women, Elderly, General local community", "Team": "4 members (1 Male, 3 Female)", "Type and Gategory": "Web, Tech Service, Web + AI", "STEAM": "Science/Technology", "Male": 1, "Female": 3, "Domain": "Public Services & Community"}, {"No": "3", "Name": "\u0628\u0635\u0645\u0629 (Basma)", "Description": "Creating a unified digital identity for individuals to access data with managed permissions (e.g., education or health), starting with a school-based digital identity system.", "Targeted Segment": "General local community", "Team": "3 members (0 Male, 3 Female)", "Type and Gategory": "Mobile, Web, Tech Service, Web + Mobile", "STEAM": "Science/Technology/Math", "Male": 0, "Female": 3, "Domain": "Education"}, {"No": "4", "Name": "HxH", "Description": "A drone equipped with AI algorithms for identifying and tracking individuals in large crowds, enhancing security and response times.", "Targeted Segment": "Children, Elderly, People with disabilities, General community, Security personnel", "Team": "5 members (2 Male, 3 Female)", "Type and Gategory": "Product, AI, IoT, Tech Service, Hardware + AI", "STEAM": "Technology/Engineering", "Male": 2, "Female": 3, "Domain": "Security"}, {"No": "5", "Name": "\u0641\u0631\u064a\u0642 \u0627\u0644\u0627\u0628\u062a\u0643\u0627\u0631 \u0627\u0644\u062a\u0639\u0644\u064a\u0645\u064a (Educational Innovation Team)", "Description": "A gamified interactive educational platform for 6th-grade students that turns curriculum content into competitive activities and games.", "Targeted Segment": "Children and others", "Team": "2 members (0 Male, 2 Female)", "Type and Gategory": "Web, Tech Service, Web + AI", "STEAM": "Technology/Arts", "Male": 0, "Female": 2, "Domain": "Education"}, {"No": "6", "Name": "\u0628\u0631\u0651\u0627\u0642 (Baraq)", "Description": "A smart educational platform that helps students organize studies, convert lectures to summaries, and provides smart tests with performance analysis.", "Targeted Segment": "Youth and others", "Team": "6 members (2 Male, 3 Female)", "Type and Gategory": "Service, Mobile, AI, Web + AI", "STEAM": "Technology", "Male": 2, "Female": 3, "Domain": "Education"}, {"No": "7", "Name": "EduNation", "Description": "A unified digital system for managing public schools in Syria, connecting administration, teachers, students, and parents to track attendance and grades.", "Targeted Segment": "Children, Youth, General local community", "Team": "2 members (2 Male, 0 Female)", "Type and Gategory": "Mobile, AI, Web, Web + Mobile", "STEAM": "Technology/Math", "Male": 2, "Female": 0, "Domain": "Education"}, {"No": "8", "Name": "Semicolon", "Description": "A digital platform connecting institutions with volunteers, facilitating organized volunteering opportunities, tracking, and certification.", "Targeted Segment": "Youth, Men, Refugees/IDPs, General local community", "Team": "3 members (2 Male, 1 Female)", "Type and Gategory": "Mobile, Web, Tech Service", "STEAM": "Technology", "Male": 2, "Female": 1, "Domain": "Security"}, {"No": "9", "Name": "\u0627\u0644\u0645\u0627\u0634\u0631\u0648\u0645\u0632 (The Mushrooms)", "Description": "A smart cane for the blind that alerts users to obstacles, provides voice navigation via GPS, and allows families to track their location.", "Targeted Segment": "People with disabilities", "Team": "3 members (3 Male, 0 Female)", "Type and Gategory": "Mobile, AI, IoT, Hardware + Web", "STEAM": "Technology/Engineering", "Male": 3, "Female": 0, "Domain": "Public Services & Community"}, {"No": "10", "Name": "GenTech", "Description": "A project providing a workspace and equipment alongside a website to offer technical learning paths and marketing plans.", "Targeted Segment": "Children, People with disabilities, Refugees, Low-income families, General community", "Team": "3 members (0 Male, 3 Female)", "Type and Gategory": "Product, Service, Web", "STEAM": "Technology/Engineering", "Male": 0, "Female": 3, "Domain": "Education"}, {"No": "11", "Name": "\u0641\u0631\u064a\u0642 \u0645\u0646\u0635\u0629 \u0631\u0627\u0626\u062f (Raed Platform Team)", "Description": "An interactive educational platform for university students and graduates focusing on practical soft skills for the local labor market.", "Targeted Segment": "Youth", "Team": "2 members (0 Male, 0 Female)", "Type and Gategory": "Mobile, AI, Web", "STEAM": "Technology/Arts", "Male": 0, "Female": 0, "Domain": "Education"}, {"No": "12", "Name": "Future technology", "Description": "Automating job interviews using a chatbot that analyzes voice tone, facial expressions, and answers after scanning resumes.", "Targeted Segment": "Youth", "Team": "2 members (0 Male, 2 Female)", "Type and Gategory": "Service, AI, Web, Tech Service, Web + AI", "STEAM": "Technology/Arts", "Male": 0, "Female": 2, "Domain": "Public Services & Community"}, {"No": "13", "Name": "\u0641\u0631\u064a\u0642 \u0632\u0647\u0631\u0629 \u0627\u0644\u062c\u0628\u0644 (Mountain Flower Team)", "Description": "Establishing charging stations for electric bicycles in strategic city locations (universities, markets) to provide safe, fast charging and parking.", "Targeted Segment": "Youth, Men, People with disabilities, Refugees, Low-income families, General community", "Team": "4 members (4 Male, 0 Female)", "Type and Gategory": "Product, Service, Tech Service, Hardware + Mobile", "STEAM": "Technology/Engineering", "Male": 4, "Female": 0, "Domain": "Business & E-commerce"}, {"No": "14", "Name": "Smart team", "Description": "A specialized smart spoon designed to assist users with specific needs.", "Targeted Segment": "Elderly", "Team": "2 members (0 Male, 1 Female)", "Type and Gategory": "Product", "STEAM": "Technology/Arts", "Male": 0, "Female": 1, "Domain": "Public Services & Community"}, {"No": "15", "Name": "VR estate", "Description": "A virtual reality project allowing users to view homes in detail without moving, including viewing and buying properties under construction.", "Targeted Segment": "Men, Women, General local community", "Team": "3 members (1 Male, 2 Female)", "Type and Gategory": "Mobile, Web, Tech Service, Web + Mobile", "STEAM": "Technology", "Male": 1, "Female": 2, "Domain": "Real Estate"}, {"No": "16", "Name": "\u0631\u064a\u0627\u062f\u064a\u0648\u0646 (Entrepreneurs)", "Description": "A digital system including an app for employees to photograph meters and an app for citizens to pay electricity bills and track consumption.", "Targeted Segment": "Men, General local community", "Team": "5 members (5 Male, 0 Female)", "Type and Gategory": "Service, Mobile, Web, Web + Mobile", "STEAM": "Science/Technology", "Male": 5, "Female": 0, "Domain": "Business & E-commerce"}];
+        let teamChart, domainChart, catChart, segmentChart;
+
+        Chart.defaults.font.family = "'Inter', sans-serif";
+
+        function initCharts() {
+            const ctx1 = document.getElementById('teamChart').getContext('2d');
+            teamChart = new Chart(ctx1, {
+                type: 'bar',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'top' } },
+                    scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } },
+                    onClick: (evt, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const projectName = teamChart.data.labels[index].split('...')[0];
+                            const project = currentData[index]; 
+                            document.getElementById('projectFilter').value = project.Name;
+                            updateDashboard();
+                        }
+                    }
+                }
+            });
+
+            const ctx2 = document.getElementById('domainChart').getContext('2d');
+            domainChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: { labels: [], datasets: [{ backgroundColor: ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#FF6D01', '#8e24aa'] }] },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            const ctx3 = document.getElementById('catChart').getContext('2d');
+            catChart = new Chart(ctx3, {
+                type: 'pie',
+                data: { labels: [], datasets: [{ backgroundColor: ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'] }] },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            const ctx4 = document.getElementById('segmentChart').getContext('2d');
+            segmentChart = new Chart(ctx4, {
+                type: 'pie',
+                data: { labels: [], datasets: [{ backgroundColor: ['#e91e63', '#9c27b0', '#3f51b5', '#00bcd4', '#4caf50', '#ffeb3b', '#ff9800', '#795548', '#607d8b'] }] },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            handleCascade();
+        }
+
+        let currentData = [];
+
+        function handleCascade() {
+            const domainVal = document.getElementById('domainFilter').value;
+            const sectorVal = document.getElementById('sectorFilter').value;
+            const segmentVal = document.getElementById('segmentFilter').value;
+            const projectSelect = document.getElementById('projectFilter');
+
+            // Find valid projects based on the 3 top filters
+            const validProjects = rawData.filter(p => {
+                let match = true;
+                if (domainVal !== 'All' && p.Domain !== domainVal) match = false;
+                if (sectorVal !== 'All' && !p['Type and Gategory'].includes(sectorVal)) match = false;
+                if (segmentVal !== 'All' && !p['Targeted Segment'].includes(segmentVal)) match = false;
+                return match;
+            });
+
+            // Rebuild Project Dropdown
+            projectSelect.innerHTML = '<option value="All">All Filtered Projects</option>';
+            validProjects.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.Name;
+                opt.textContent = p.Name;
+                projectSelect.appendChild(opt);
+            });
+
+            // Trigger standard dashboard update
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            const domainVal = document.getElementById('domainFilter').value;
+            const sectorVal = document.getElementById('sectorFilter').value;
+            const segmentVal = document.getElementById('segmentFilter').value;
+            const projectVal = document.getElementById('projectFilter').value;
+            
+            // Filter Data for the entire dashboard
+            currentData = rawData.filter(p => {
+                let match = true;
+                if (projectVal !== 'All' && p.Name !== projectVal) match = false;
+                if (domainVal !== 'All' && p.Domain !== domainVal) match = false;
+                if (sectorVal !== 'All' && !p['Type and Gategory'].includes(sectorVal)) match = false;
+                if (segmentVal !== 'All' && !p['Targeted Segment'].includes(segmentVal)) match = false;
+                return match;
+            });
+
+            // Show Details Panel Logic
+            if (projectVal !== 'All' && currentData.length > 0) {
+                showDetails(currentData[0]);
+            } else {
+                document.getElementById('detailsPanel').style.display = 'none';
+                document.getElementById('placeholderText').style.display = 'block';
+                if (currentData.length === 0) {
+                    document.getElementById('placeholderText').innerText = 'No projects match the current filters.';
+                } else {
+                    document.getElementById('placeholderText').innerText = 'Select a specific project from the list to view its details.';
+                }
+            }
+
+            // Update KPIs
+            document.getElementById('statProjects').innerText = currentData.length;
+            const totalM = currentData.reduce((a, b) => a + b.Male, 0);
+            const totalF = currentData.reduce((a, b) => a + b.Female, 0);
+            document.getElementById('statMembers').innerText = totalM + totalF;
+            document.getElementById('statMale').innerText = totalM;
+            document.getElementById('statFemale').innerText = totalF;
+
+            // Update Team Chart (Spans top row)
+            teamChart.data.labels = currentData.map(p => p.Name.length > 25 ? p.Name.substring(0, 25) + '...' : p.Name);
+            teamChart.data.datasets = [
+                { label: 'Male', data: currentData.map(p => p.Male), backgroundColor: '#1a73e8' },
+                { label: 'Female', data: currentData.map(p => p.Female), backgroundColor: '#e91e63' }
+            ];
+            teamChart.update();
+
+            // Update Domain Chart
+            const domainMap = {};
+            currentData.forEach(p => {
+                domainMap[p.Domain] = (domainMap[p.Domain] || 0) + 1;
+            });
+            domainChart.data.labels = Object.keys(domainMap);
+            domainChart.data.datasets[0].data = Object.values(domainMap);
+            domainChart.update();
+
+            // Update Category Chart
+            const catMap = {};
+            currentData.forEach(p => {
+                p['Type and Gategory'].split(', ').forEach(c => {
+                    catMap[c] = (catMap[c] || 0) + 1;
+                });
+            });
+            catChart.data.labels = Object.keys(catMap);
+            catChart.data.datasets[0].data = Object.values(catMap);
+            catChart.update();
+
+            // Update Segment Chart (NEW)
+            const segMap = {};
+            currentData.forEach(p => {
+                p['Targeted Segment'].split(', ').forEach(s => {
+                    segMap[s] = (segMap[s] || 0) + 1;
+                });
+            });
+            segmentChart.data.labels = Object.keys(segMap);
+            segmentChart.data.datasets[0].data = Object.values(segMap);
+            segmentChart.update();
+        }
+
+        function showDetails(project) {
+            document.getElementById('placeholderText').style.display = 'none';
+            document.getElementById('detailsPanel').style.display = 'block';
+            
+            document.getElementById('pName').innerText = project.Name;
+            document.getElementById('pDomainBadge').innerText = project.Domain;
+            document.getElementById('pDesc').innerText = project.Description;
+            document.getElementById('pSegment').innerText = project['Targeted Segment'];
+            document.getElementById('pCat').innerText = project['Type and Gategory'];
+            document.getElementById('pSteam').innerText = project.STEAM;
+            document.getElementById('pTeam').innerText = project.Team;
+        }
+
+        window.onload = initCharts;
+    </script>
+</body>
+</html>
